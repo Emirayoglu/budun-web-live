@@ -1,65 +1,152 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import Navbar from '@/components/Navbar'
+import { 
+  FileText, 
+  RefreshCw, 
+  DollarSign, 
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  ArrowRight
+} from 'lucide-react'
 
 export default function Home() {
+  const [stats, setStats] = useState({
+    totalPoliceler: 0,
+    yenilemeBekleyen: 0,
+    toplamPrim: 0,
+    toplamBorc: 0,
+  })
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
+      <Navbar />
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12 animate-fade-in">
+          <h1 className="text-5xl font-black text-blue-900 mb-4 tracking-tight">
+            BUDUN
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Modern Sigorta Yönetim Sistemi
           </p>
+          <div className="mt-4 inline-flex items-center space-x-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-green-700">Sistem Aktif</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {/* Toplam Poliçeler */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <FileText className="w-6 h-6 text-blue-600" />
+              </div>
+              <span className="text-3xl font-black text-blue-900">{stats.totalPoliceler}</span>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-600 mb-1">Toplam Poliçe</h3>
+            <p className="text-xs text-gray-500">Aktif poliçe sayısı</p>
+          </div>
+
+          {/* Yenileme Bekleyen */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                <RefreshCw className="w-6 h-6 text-orange-600" />
+              </div>
+              <span className="text-3xl font-black text-orange-900">{stats.yenilemeBekleyen}</span>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-600 mb-1">Yenileme Bekleyen</h3>
+            <p className="text-xs text-gray-500">Yaklaşan poliçeler</p>
+          </div>
+
+          {/* Toplam Prim */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-green-600" />
+              </div>
+              <span className="text-3xl font-black text-green-900">
+                {stats.toplamPrim.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+              </span>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-600 mb-1">Toplam Prim</h3>
+            <p className="text-xs text-gray-500">TL cinsinden</p>
+          </div>
+
+          {/* Toplam Borç */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-red-600" />
+              </div>
+              <span className="text-3xl font-black text-red-900">
+                {stats.toplamBorc.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+              </span>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-600 mb-1">Toplam Borç</h3>
+            <p className="text-xs text-gray-500">Tahsil edilecek</p>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Poliçe Gir */}
+          <Link href="/police">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-lg p-8 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                  <FileText className="w-7 h-7" />
+                </div>
+                <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Yeni Poliçe</h3>
+              <p className="text-blue-100">Poliçe kayıt ve düzenleme</p>
+            </div>
+          </Link>
+
+          {/* Yenileme Takibi */}
+          <Link href="/yenilemeler">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-700 rounded-2xl shadow-lg p-8 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                  <RefreshCw className="w-7 h-7" />
+                </div>
+                <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Yenileme Takibi</h3>
+              <p className="text-orange-100">Süresi dolacak poliçeler</p>
+            </div>
+          </Link>
+
+          {/* Finans */}
+          <Link href="/finans">
+            <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-2xl shadow-lg p-8 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-7 h-7" />
+                </div>
+                <ArrowRight className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Finans Yönetimi</h3>
+              <p className="text-green-100">Borç ve ödeme takibi</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Footer Info */}
+        <div className="mt-12 text-center text-gray-500 text-sm">
+          <p>© 2025 BUDUN Sigorta Yönetim Sistemi - Tüm hakları saklıdır</p>
+          <p className="mt-2">Web + Mobil + Desktop - Her yerden erişin 🌐</p>
         </div>
       </main>
     </div>
-  );
+  )
 }
