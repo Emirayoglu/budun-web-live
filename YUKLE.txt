@@ -1,0 +1,38 @@
+╔═══════════════════════════════════════════════════════════════╗
+║          BUDUN WEB - GitHub'a Yükleme (KOLAY YOL)           ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🎯 ADIM 1: GitHub Desktop İndir
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. https://desktop.github.com indir ve kur
+2. Emirayoglu hesabınızla giriş yapın
+
+📤 ADIM 2: Klasörü Ekle
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. GitHub Desktop'ta "Add Local Repository" tıklayın
+2. Şu klasörü seçin: C:\Users\kmc38\Desktop\budun-web
+3. "Publish repository" tıklayın
+4. Repository name: budun-web-live
+5. "Publish repository" tekrar tıklayın
+
+✅ TAMAM! GitHub'a yüklendi!
+
+🚀 ADIM 3: Vercel'de Deploy
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. https://vercel.com/new
+2. "budun-web-live" görünecek, Import tıklayın
+3. Environment Variables ekleyin:
+
+   NEXT_PUBLIC_SUPABASE_URL
+   https://iivinxqtiyrtznjqkzin.supabase.co
+
+   NEXT_PUBLIC_SUPABASE_ANON_KEY
+   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpdmlueHF0aXlydHpuanFremluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyODA3NjMsImV4cCI6MjA4Mjg1Njc2M30.IiBTk5HsudUt4wB3sgiJTwgV6MzfBnZ0YZYftuee5_4
+
+4. Deploy! 🎉
+
+⏱️ 2-3 dakikada hazır!
+

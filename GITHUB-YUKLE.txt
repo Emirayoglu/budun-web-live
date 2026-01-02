@@ -1,0 +1,56 @@
+╔════════════════════════════════════════════════════════════╗
+║        BUDUN WEB - GitHub'a Yükleme Rehberi              ║
+╚════════════════════════════════════════════════════════════╝
+
+📋 ADIM 1: GitHub'da Repo Oluştur
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. https://github.com/new adresine gidin
+2. Repository name: budun-web
+3. Public seçin (veya Private)
+4. "Create repository" butonuna tıklayın
+
+📤 ADIM 2: Kodu GitHub'a Yükle
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Terminal'de bu komutları çalıştırın:
+
+cd C:\Users\kmc38\Desktop\budun-web
+
+git remote add origin https://github.com/KULLANICI_ADINIZ/budun-web.git
+
+git branch -M main
+
+git push -u origin main
+
+
+🔑 Not: GitHub kullanıcı adı ve token isterseniz:
+   - GitHub → Settings → Developer settings → Personal access tokens
+   - "Generate new token (classic)" 
+   - repo yetkisi verin
+   - Token'ı kopyalayın, şifre yerine kullanın
+
+🚀 ADIM 3: Vercel'de Import Et
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. https://vercel.com/new
+2. "Import Git Repository" altında budun-web görünecek
+3. Import tıklayın
+4. Environment Variables ekleyin:
+
+   NEXT_PUBLIC_SUPABASE_URL
+   https://iivinxqtiyrtznjqkzin.supabase.co
+
+   NEXT_PUBLIC_SUPABASE_ANON_KEY
+   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpdmlueHF0aXlydHpuanFremluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyODA3NjMsImV4cCI6MjA4Mjg1Njc2M30.IiBTk5HsudUt4wB3sgiJTwgV6MzfBnZ0YZYftuee5_4
+
+5. Deploy tıklayın! 🎉
+
+✅ SONUÇ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2-3 dakika sonra linkiniz hazır:
+https://budun-web.vercel.app
+
+Bu linki her yerden açabilirsiniz! 🌍📱💻
+
