@@ -11,8 +11,10 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react'
+import { supabase, type Police } from '@/lib/supabase'
 
 export default function Home() {
   const [stats, setStats] = useState({
@@ -21,6 +23,64 @@ export default function Home() {
     toplamPrim: 0,
     toplamBorc: 0,
   })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadStats()
+    
+    // Her 30 saniyede bir otomatik yenile
+    const interval = setInterval(() => {
+      loadStats()
+    }, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadStats = async () => {
+    try {
+      setLoading(true)
+      
+      // Tüm poliçeleri çek
+      const { data: policeler, error } = await supabase
+        .from('policeler')
+        .select('*')
+      
+      if (error) throw error
+
+      const today = new Date()
+      const thirtyDaysLater = new Date()
+      thirtyDaysLater.setDate(today.getDate() + 30)
+
+      // İstatistikleri hesapla
+      const totalPoliceler = policeler?.length || 0
+      
+      // 30 gün içinde bitenler
+      const yenilemeBekleyen = policeler?.filter(p => {
+        const bitis = new Date(p.bitis_tarihi)
+        return bitis >= today && bitis <= thirtyDaysLater
+      }).length || 0
+
+      // Toplam prim
+      const toplamPrim = policeler?.reduce((sum, p) => sum + (p.prim_tutari || 0), 0) || 0
+
+      // Toplam borç (prim - ödenen)
+      const toplamBorc = policeler?.reduce((sum, p) => {
+        const borc = (p.prim_tutari || 0) - (p.odenen_tutar || 0)
+        return sum + Math.max(0, borc)
+      }, 0) || 0
+
+      setStats({
+        totalPoliceler,
+        yenilemeBekleyen,
+        toplamPrim,
+        toplamBorc
+      })
+    } catch (err: any) {
+      console.error('İstatistik yükleme hatası:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
@@ -49,7 +109,11 @@ export default function Home() {
               <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                 <FileText className="w-6 h-6 text-blue-600" />
               </div>
-              <span className="text-3xl font-black text-blue-900">{stats.totalPoliceler}</span>
+              {loading ? (
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              ) : (
+                <span className="text-3xl font-black text-blue-900">{stats.totalPoliceler}</span>
+              )}
             </div>
             <h3 className="text-sm font-semibold text-gray-600 mb-1">Toplam Poliçe</h3>
             <p className="text-xs text-gray-500">Aktif poliçe sayısı</p>
@@ -61,10 +125,14 @@ export default function Home() {
               <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
                 <RefreshCw className="w-6 h-6 text-orange-600" />
               </div>
-              <span className="text-3xl font-black text-orange-900">{stats.yenilemeBekleyen}</span>
+              {loading ? (
+                <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
+              ) : (
+                <span className="text-3xl font-black text-orange-900">{stats.yenilemeBekleyen}</span>
+              )}
             </div>
             <h3 className="text-sm font-semibold text-gray-600 mb-1">Yenileme Bekleyen</h3>
-            <p className="text-xs text-gray-500">Yaklaşan poliçeler</p>
+            <p className="text-xs text-gray-500">30 gün içinde biten</p>
           </div>
 
           {/* Toplam Prim */}
@@ -73,9 +141,13 @@ export default function Home() {
               <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-green-600" />
               </div>
-              <span className="text-3xl font-black text-green-900">
-                {stats.toplamPrim.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
-              </span>
+              {loading ? (
+                <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+              ) : (
+                <span className="text-3xl font-black text-green-900">
+                  {stats.toplamPrim.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+                </span>
+              )}
             </div>
             <h3 className="text-sm font-semibold text-gray-600 mb-1">Toplam Prim</h3>
             <p className="text-xs text-gray-500">TL cinsinden</p>
@@ -87,9 +159,13 @@ export default function Home() {
               <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-red-600" />
               </div>
-              <span className="text-3xl font-black text-red-900">
-                {stats.toplamBorc.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
-              </span>
+              {loading ? (
+                <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+              ) : (
+                <span className="text-3xl font-black text-red-900">
+                  {stats.toplamBorc.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+                </span>
+              )}
             </div>
             <h3 className="text-sm font-semibold text-gray-600 mb-1">Toplam Borç</h3>
             <p className="text-xs text-gray-500">Tahsil edilecek</p>

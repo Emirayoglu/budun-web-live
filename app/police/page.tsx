@@ -2,19 +2,41 @@
 
 import Navbar from '@/components/Navbar'
 import { useState, useEffect } from 'react'
-import { FileText, Plus, Loader2 } from 'lucide-react'
-import { supabase, type Police, type Musteri } from '@/lib/supabase'
+import { FileText, Plus, Loader2, Save, X } from 'lucide-react'
+import { supabase, type Police, type Musteri, type Satisci } from '@/lib/supabase'
 
 export default function PolicePage() {
   const [policeler, setPoliceler] = useState<Police[]>([])
   const [musteriler, setMusteriler] = useState<Musteri[]>([])
+  const [satiscilar, setSatiscilar] = useState<Satisci[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+
+  // Form state
+  const [formData, setFormData] = useState({
+    ad_soyad: '',
+    tc_no: '',
+    telefon: '',
+    email: '',
+    police_no: '',
+    sigorta_turu: '',
+    sirket: '',
+    baslangic_tarihi: '',
+    bitis_tarihi: '',
+    prim_tutari: '',
+    komisyon_tutari: '',
+    odeme_sekli: '',
+    satisci_id: '',
+    aciklama: ''
+  })
 
   // Poliçeleri yükle
   useEffect(() => {
     loadPoliceler()
     loadMusteriler()
+    loadSatiscilar()
     
     // Her 30 saniyede bir otomatik yenile
     const interval = setInterval(() => {
@@ -57,11 +79,167 @@ export default function PolicePage() {
     }
   }
 
+  const loadSatiscilar = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('satiscilar')
+        .select('*')
+        .eq('durum', 'Aktif')
+        .order('ad_soyad', { ascending: true })
+      
+      if (error) throw error
+      setSatiscilar(data || [])
+    } catch (err: any) {
+      console.error('Satışçı yükleme hatası:', err)
+    }
+  }
+
+  // Komisyon otomatik hesapla
+  useEffect(() => {
+    if (formData.prim_tutari) {
+      const prim = parseFloat(formData.prim_tutari.replace(/\./g, '').replace(',', '.')) || 0
+      const komisyon = prim * 0.15
+      setFormData(prev => ({ ...prev, komisyon_tutari: komisyon.toFixed(2) }))
+    } else {
+      setFormData(prev => ({ ...prev, komisyon_tutari: '' }))
+    }
+  }, [formData.prim_tutari])
+
+  // Bitiş tarihini otomatik ayarla
+  useEffect(() => {
+    if (formData.baslangic_tarihi) {
+      const baslangic = new Date(formData.baslangic_tarihi)
+      const bitis = new Date(baslangic)
+      bitis.setFullYear(bitis.getFullYear() + 1)
+      setFormData(prev => ({ ...prev, bitis_tarihi: bitis.toISOString().split('T')[0] }))
+    }
+  }, [formData.baslangic_tarihi])
+
   // Müşteri adını bul
   const getMusteriAdi = (musteriId: number) => {
     const musteri = musteriler.find(m => m.id === musteriId)
     return musteri?.ad_soyad || 'Bilinmiyor'
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+
+    try {
+      // Validasyon
+      if (!formData.ad_soyad || !formData.tc_no || !formData.police_no || !formData.sigorta_turu || !formData.sirket) {
+        throw new Error('Lütfen tüm zorunlu alanları doldurun!')
+      }
+
+      if (formData.tc_no.length !== 11) {
+        throw new Error('TC No 11 haneli olmalıdır!')
+      }
+
+      // Önce müşteriyi ekle veya bul
+      let musteriId: number | null = null
+      
+      // Mevcut müşteriyi kontrol et
+      const existingMusteri = musteriler.find(m => m.tc_no === formData.tc_no)
+      
+      if (existingMusteri) {
+        musteriId = existingMusteri.id
+      } else {
+        // Yeni müşteri ekle
+        const { data: newMusteri, error: musteriError } = await supabase
+          .from('musteriler')
+          .insert({
+            ad_soyad: formData.ad_soyad,
+            tc_no: formData.tc_no,
+            telefon: formData.telefon || null,
+            email: formData.email || null,
+            adres: null
+          })
+          .select()
+          .single()
+
+        if (musteriError) throw musteriError
+        musteriId = newMusteri.id
+      }
+
+      // Prim tutarını temizle ve parse et
+      const prim = parseFloat(formData.prim_tutari.replace(/\./g, '').replace(',', '.')) || 0
+      const komisyon = parseFloat(formData.komisyon_tutari.replace(/\./g, '').replace(',', '.')) || 0
+
+      // Poliçeyi ekle
+      const { error: policeError } = await supabase
+        .from('policeler')
+        .insert({
+          musteri_id: musteriId,
+          police_no: formData.police_no,
+          sigorta_turu: formData.sigorta_turu,
+          sirket: formData.sirket,
+          baslangic_tarihi: formData.baslangic_tarihi,
+          bitis_tarihi: formData.bitis_tarihi,
+          prim_tutari: prim,
+          komisyon_tutari: komisyon,
+          odeme_sekli: formData.odeme_sekli || 'Nakit',
+          satisci_id: formData.satisci_id ? parseInt(formData.satisci_id) : null,
+          aciklama: formData.aciklama || null,
+          yenileme_durumu: 'Süreç devam ediyor'
+        })
+
+      if (policeError) throw policeError
+
+      // Başarılı - formu temizle ve listeyi yenile
+      setFormData({
+        ad_soyad: '',
+        tc_no: '',
+        telefon: '',
+        email: '',
+        police_no: '',
+        sigorta_turu: '',
+        sirket: '',
+        baslangic_tarihi: '',
+        bitis_tarihi: '',
+        prim_tutari: '',
+        komisyon_tutari: '',
+        odeme_sekli: '',
+        satisci_id: '',
+        aciklama: ''
+      })
+      setShowForm(false)
+      loadPoliceler()
+      loadMusteriler()
+      alert('Poliçe başarıyla kaydedildi! ✅')
+    } catch (err: any) {
+      console.error('Kayıt hatası:', err)
+      setError(err.message || 'Poliçe kaydedilirken hata oluştu')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const sigortaSirketleri = [
+    'Anadolu Sigorta',
+    'Allianz',
+    'AXA Sigorta',
+    'HDI Sigorta',
+    'Mapfre Sigorta',
+    'Türk Nippon',
+    'Aksigorta',
+    'Groupama',
+    'Ziraat Sigorta',
+    'Halk Sigorta'
+  ]
+
+  const sigortaTurleri = [
+    'Kasko',
+    'Trafik',
+    'Konut',
+    'Dask',
+    'Sağlık',
+    'İşyeri',
+    'Nakliyat',
+    'Makine Kırılması',
+    'İşveren Mali Sorumluluk',
+    'Mesleki Sorumluluk'
+  ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
@@ -79,94 +257,189 @@ export default function PolicePage() {
               <p className="text-gray-600">Yeni poliçe ekleyin ve mevcut poliçeleri yönetin</p>
             </div>
           </div>
-          <button className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl">
-            <Plus className="w-5 h-5" />
-            <span className="font-semibold">Yeni Poliçe</span>
+          <button 
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
+          >
+            {showForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+            <span className="font-semibold">{showForm ? 'İptal' : 'Yeni Poliçe'}</span>
           </button>
         </div>
 
         {/* Form Bölümü */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Müşteri Bilgileri */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
-              <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-black">1</span>
-              <span>Müşteri Bilgileri</span>
-            </h3>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Müşteri Adı Soyadı"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                placeholder="TC No"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                placeholder="Telefon"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+        {showForm && (
+          <form onSubmit={handleSubmit} className="mb-8">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6">
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                  {error}
+                </div>
+              )}
 
-          {/* Poliçe Bilgileri */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
-              <span className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-green-600 font-black">2</span>
-              <span>Poliçe Bilgileri</span>
-            </h3>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Poliçe No"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              <select className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option>Sigorta Türü Seçin</option>
-                <option>Kasko</option>
-                <option>Trafik</option>
-                <option>Konut</option>
-                <option>Dask</option>
-                <option>Sağlık</option>
-              </select>
-              <select className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option>Sigorta Şirketi</option>
-                <option>Anadolu Sigorta</option>
-                <option>Allianz</option>
-                <option>Axa</option>
-              </select>
-            </div>
-          </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Müşteri Bilgileri */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
+                    <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-black">1</span>
+                    <span>Müşteri Bilgileri</span>
+                  </h3>
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Müşteri Adı Soyadı *"
+                      value={formData.ad_soyad}
+                      onChange={(e) => setFormData({ ...formData, ad_soyad: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="text"
+                      required
+                      placeholder="TC No (11 haneli) *"
+                      maxLength={11}
+                      value={formData.tc_no}
+                      onChange={(e) => setFormData({ ...formData, tc_no: e.target.value.replace(/\D/g, '') })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Telefon"
+                      value={formData.telefon}
+                      onChange={(e) => setFormData({ ...formData, telefon: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="email"
+                      placeholder="E-mail"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
 
-          {/* Ödeme Bilgileri */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
-              <span className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 font-black">3</span>
-              <span>Ödeme Bilgileri</span>
-            </h3>
-            <div className="space-y-4">
-              <input
-                type="number"
-                placeholder="Prim Tutarı"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <input
-                type="number"
-                placeholder="Komisyon Tutarı"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <select className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <option>Ödeme Şekli</option>
-                <option>Nakit</option>
-                <option>Kredi Kartı</option>
-                <option>Havale</option>
-              </select>
+                {/* Poliçe Bilgileri */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
+                    <span className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-green-600 font-black">2</span>
+                    <span>Poliçe Bilgileri</span>
+                  </h3>
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Poliçe No *"
+                      value={formData.police_no}
+                      onChange={(e) => setFormData({ ...formData, police_no: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <select
+                      required
+                      value={formData.sigorta_turu}
+                      onChange={(e) => setFormData({ ...formData, sigorta_turu: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">Sigorta Türü Seçin *</option>
+                      {sigortaTurleri.map(tur => (
+                        <option key={tur} value={tur}>{tur}</option>
+                      ))}
+                    </select>
+                    <select
+                      required
+                      value={formData.sirket}
+                      onChange={(e) => setFormData({ ...formData, sirket: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">Sigorta Şirketi Seçin *</option>
+                      {sigortaSirketleri.map(sirket => (
+                        <option key={sirket} value={sirket}>{sirket}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="date"
+                      required
+                      placeholder="Başlangıç Tarihi"
+                      value={formData.baslangic_tarihi}
+                      onChange={(e) => setFormData({ ...formData, baslangic_tarihi: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <input
+                      type="date"
+                      required
+                      placeholder="Bitiş Tarihi"
+                      value={formData.bitis_tarihi}
+                      onChange={(e) => setFormData({ ...formData, bitis_tarihi: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Ödeme Bilgileri */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
+                    <span className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 font-black">3</span>
+                    <span>Ödeme Bilgileri</span>
+                  </h3>
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Prim Tutarı (₺) *"
+                      value={formData.prim_tutari}
+                      onChange={(e) => setFormData({ ...formData, prim_tutari: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <input
+                      type="text"
+                      readOnly
+                      placeholder="Komisyon Tutarı (₺) - Otomatik"
+                      value={formData.komisyon_tutari}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600"
+                    />
+                    <select
+                      value={formData.odeme_sekli}
+                      onChange={(e) => setFormData({ ...formData, odeme_sekli: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="Nakit">Nakit</option>
+                      <option value="Kredi Kartı">Kredi Kartı</option>
+                      <option value="Havale">Havale</option>
+                      <option value="Çek">Çek</option>
+                    </select>
+                    <select
+                      value={formData.satisci_id}
+                      onChange={(e) => setFormData({ ...formData, satisci_id: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="">Satışçı Seçin</option>
+                      {satiscilar.map(satisci => (
+                        <option key={satisci.id} value={satisci.id}>{satisci.ad_soyad}</option>
+                      ))}
+                    </select>
+                    <textarea
+                      placeholder="Açıklama"
+                      value={formData.aciklama}
+                      onChange={(e) => setFormData({ ...formData, aciklama: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  <span className="font-semibold">{saving ? 'Kaydediliyor...' : 'Kaydet'}</span>
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
+          </form>
+        )}
 
         {/* Poliçe Listesi */}
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
@@ -245,4 +518,3 @@ export default function PolicePage() {
     </div>
   )
 }
-
