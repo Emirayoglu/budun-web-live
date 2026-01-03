@@ -70,3 +70,6 @@ Vercel ücretsiz plan:
 
 Yeterli olacaktır! 🎉
 
+
+
+

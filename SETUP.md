@@ -48,3 +48,6 @@ http://localhost:3000 adresine gidin
 - Supabase
 - Lucide Icons
 
+
+
+
