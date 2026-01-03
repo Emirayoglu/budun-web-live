@@ -1,12 +1,14 @@
 'use client'
 
 import Navbar from '@/components/Navbar'
+import ProtectedRoute from '@/components/ProtectedRoute'
 import { Users, Target } from 'lucide-react'
 
 export default function CaprazSatisPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-gray-50">
-      <Navbar />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-gray-50">
+        <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -90,7 +92,8 @@ export default function CaprazSatisPage() {
           </div>
         )}
       </main>
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }
 

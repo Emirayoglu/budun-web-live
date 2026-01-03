@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import ProtectedRoute from '@/components/ProtectedRoute'
 import { 
   FileText, 
   RefreshCw, 
@@ -83,8 +84,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
-      <Navbar />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
+        <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
@@ -223,6 +225,7 @@ export default function Home() {
           <p className="mt-2">Web + Mobil + Desktop - Her yerden erişin 🌐</p>
         </div>
       </main>
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }

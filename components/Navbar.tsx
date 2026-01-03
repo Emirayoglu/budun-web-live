@@ -1,18 +1,35 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   Home, 
   FileText, 
   RefreshCw, 
   DollarSign, 
   BarChart3, 
-  Users 
+  Users,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react'
+import { kullaniciOku, kullaniciCikis } from '@/lib/auth'
+import { useEffect, useState } from 'react'
 
 export default function Navbar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [kullanici, setKullanici] = useState<{ ad_soyad: string } | null>(null)
+
+  useEffect(() => {
+    const mevcutKullanici = kullaniciOku()
+    setKullanici(mevcutKullanici)
+  }, [])
+
+  const handleLogout = () => {
+    kullaniciCikis()
+    router.push('/login')
+    router.refresh()
+  }
   
   const navItems = [
     { href: '/', label: 'Ana Sayfa', icon: Home },
@@ -63,6 +80,23 @@ export default function Navbar() {
                 </Link>
               )
             })}
+            
+            {/* Kullanıcı Bilgisi ve Çıkış */}
+            {kullanici && pathname !== '/login' && (
+              <div className="ml-4 pl-4 border-l border-gray-200 flex items-center space-x-3">
+                <div className="flex items-center space-x-2 text-gray-700">
+                  <UserIcon className="w-4 h-4" />
+                  <span className="text-sm font-medium">{kullanici.ad_soyad}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Çıkış</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -100,6 +134,25 @@ export default function Navbar() {
               </Link>
             )
           })}
+          
+          {/* Mobile: Kullanıcı Bilgisi ve Çıkış */}
+          {kullanici && pathname !== '/login' && (
+            <>
+              <div className="border-t border-gray-200 my-2 pt-2">
+                <div className="flex items-center space-x-3 px-3 py-2 text-gray-700">
+                  <UserIcon className="w-5 h-5" />
+                  <span className="text-sm font-medium">{kullanici.ad_soyad}</span>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Çıkış Yap</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
     </nav>

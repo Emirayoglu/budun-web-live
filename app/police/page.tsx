@@ -1,6 +1,7 @@
 'use client'
 
 import Navbar from '@/components/Navbar'
+import ProtectedRoute from '@/components/ProtectedRoute'
 import { useState, useEffect } from 'react'
 import { FileText, Plus, Loader2, Save, X } from 'lucide-react'
 import { supabase, type Police, type Musteri, type Satisci } from '@/lib/supabase'
@@ -266,8 +267,9 @@ export default function PolicePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
-      <Navbar />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50">
+        <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -553,6 +555,7 @@ export default function PolicePage() {
           )}
         </div>
       </main>
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }
