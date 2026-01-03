@@ -38,9 +38,14 @@ export interface Police {
   komisyon_tutari: number
   odeme_sekli: string
   aciklama?: string
+  plaka?: string
+  belge_seri?: string
   yenileme_durumu: string
   odenen_tutar?: number
   odeme_tarihi?: string
   kayit_tarihi: string
 }
+
+
+
 
