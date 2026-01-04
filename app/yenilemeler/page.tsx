@@ -10,7 +10,6 @@ export default function YenilemelerPage() {
   const [policeler, setPoliceler] = useState<Police[]>([])
   const [musteriler, setMusteriler] = useState<Musteri[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterDays, setFilterDays] = useState(90) // 90 gün içinde bitenler
 
   useEffect(() => {
     loadData()
@@ -21,7 +20,7 @@ export default function YenilemelerPage() {
     }, 30000)
     
     return () => clearInterval(interval)
-  }, [filterDays])
+  }, [])
 
   const loadData = async () => {
     try {
@@ -36,15 +35,22 @@ export default function YenilemelerPage() {
 
       // Bugünün tarihi
       const today = new Date()
-      const filterDate = new Date()
-      filterDate.setDate(today.getDate() + filterDays)
+      today.setHours(0, 0, 0, 0)
+      
+      // 5 gün geçen (bugünden 5 gün önce)
+      const gecmisTarih = new Date(today)
+      gecmisTarih.setDate(today.getDate() - 5)
+      
+      // 18 gün kalan (bugünden 18 gün sonra)
+      const gelecekTarih = new Date(today)
+      gelecekTarih.setDate(today.getDate() + 18)
 
-      // Poliçeleri yükle - bitiş tarihine göre filtrele
+      // Poliçeleri yükle - sadece 18 gün kalan ve 5 gün geçen yenilemeler
       const { data: policeData, error } = await supabase
         .from('policeler')
         .select('*')
-        .gte('bitis_tarihi', today.toISOString().split('T')[0])
-        .lte('bitis_tarihi', filterDate.toISOString().split('T')[0])
+        .gte('bitis_tarihi', gecmisTarih.toISOString().split('T')[0])
+        .lte('bitis_tarihi', gelecekTarih.toISOString().split('T')[0])
         .order('bitis_tarihi', { ascending: true })
       
       if (error) throw error
@@ -72,15 +78,14 @@ export default function YenilemelerPage() {
 
   // Durum rengi
   const getDurumRenk = (kalanGun: number) => {
-    if (kalanGun <= 30) return 'bg-red-50 border-red-200 text-red-700'
-    if (kalanGun <= 60) return 'bg-yellow-50 border-yellow-200 text-yellow-700'
+    if (kalanGun < 0) return 'bg-red-50 border-red-200 text-red-700' // Geçmiş
+    if (kalanGun <= 18) return 'bg-orange-50 border-orange-200 text-orange-700' // 18 gün içinde
     return 'bg-green-50 border-green-200 text-green-700'
   }
 
   // İstatistikler
-  const acil = policeler.filter(p => getKalanGun(p.bitis_tarihi) <= 30).length
-  const yakin = policeler.filter(p => getKalanGun(p.bitis_tarihi) > 30 && getKalanGun(p.bitis_tarihi) <= 60).length
-  const normal = policeler.filter(p => getKalanGun(p.bitis_tarihi) > 60).length
+  const gecmis = policeler.filter(p => getKalanGun(p.bitis_tarihi) < 0).length // 5 gün geçen
+  const yaklasan = policeler.filter(p => getKalanGun(p.bitis_tarihi) >= 0 && getKalanGun(p.bitis_tarihi) <= 18).length // 18 gün kalan
 
   return (
     <ProtectedRoute>
@@ -96,20 +101,10 @@ export default function YenilemelerPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-orange-900">Yenileme Takibi</h1>
-              <p className="text-gray-600">Süresi dolacak poliçeleri takip edin</p>
+              <p className="text-gray-600">18 gün kalan ve 5 gün geçen poliçeleri takip edin</p>
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <select
-              value={filterDays}
-              onChange={(e) => setFilterDays(parseInt(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value={30}>30 Gün İçinde</option>
-              <option value={60}>60 Gün İçinde</option>
-              <option value={90}>90 Gün İçinde</option>
-              <option value={180}>180 Gün İçinde</option>
-            </select>
             <button 
               onClick={loadData}
               className="flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-lg"
@@ -121,34 +116,24 @@ export default function YenilemelerPage() {
         </div>
 
         {/* İstatistikler */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-red-600 font-semibold mb-1">ACİL (30 Gün)</p>
-                <p className="text-4xl font-black text-red-700">{acil}</p>
+                <p className="text-sm text-red-600 font-semibold mb-1">GEÇMİŞ (5 Gün Geçen)</p>
+                <p className="text-4xl font-black text-red-700">{gecmis}</p>
               </div>
               <div className="text-5xl">🔴</div>
             </div>
           </div>
 
-          <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6">
+          <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-yellow-600 font-semibold mb-1">YAKIN (60 Gün)</p>
-                <p className="text-4xl font-black text-yellow-700">{yakin}</p>
+                <p className="text-sm text-orange-600 font-semibold mb-1">YAKLAŞAN (18 Gün Kalan)</p>
+                <p className="text-4xl font-black text-orange-700">{yaklasan}</p>
               </div>
-              <div className="text-5xl">🟡</div>
-            </div>
-          </div>
-
-          <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 font-semibold mb-1">NORMAL (60+ Gün)</p>
-                <p className="text-4xl font-black text-green-700">{normal}</p>
-              </div>
-              <div className="text-5xl">🟢</div>
+              <div className="text-5xl">🟠</div>
             </div>
           </div>
         </div>
@@ -201,7 +186,7 @@ export default function YenilemelerPage() {
                         </td>
                         <td className="py-3 px-4">
                           <span className={`px-3 py-1 rounded-lg text-sm font-bold ${getDurumRenk(kalanGun)}`}>
-                            {kalanGun} gün
+                            {kalanGun < 0 ? `${Math.abs(kalanGun)} gün geçti` : `${kalanGun} gün`}
                           </span>
                         </td>
                         <td className="py-3 px-4">
