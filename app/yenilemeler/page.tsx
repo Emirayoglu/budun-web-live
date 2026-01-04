@@ -3,26 +3,52 @@
 import Navbar from '@/components/Navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useState, useEffect } from 'react'
-import { RefreshCw, Filter, Loader2, AlertCircle } from 'lucide-react'
+import { RefreshCw, Calendar, Loader2, X } from 'lucide-react'
 import { supabase, type Police, type Musteri } from '@/lib/supabase'
 
 export default function YenilemelerPage() {
   const [policeler, setPoliceler] = useState<Police[]>([])
   const [musteriler, setMusteriler] = useState<Musteri[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDateDialog, setShowDateDialog] = useState(false)
+  const [baslangicTarih, setBaslangicTarih] = useState<string>('')
+  const [bitisTarih, setBitisTarih] = useState<string>('')
+
+  // İlk yüklemede varsayılan tarihleri ayarla
+  useEffect(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // 5 gün geçen (bugünden 5 gün önce)
+    const gecmisTarih = new Date(today)
+    gecmisTarih.setDate(today.getDate() - 5)
+    
+    // 18 gün kalan (bugünden 18 gün sonra)
+    const gelecekTarih = new Date(today)
+    gelecekTarih.setDate(today.getDate() + 18)
+    
+    setBaslangicTarih(gecmisTarih.toISOString().split('T')[0])
+    setBitisTarih(gelecekTarih.toISOString().split('T')[0])
+  }, [])
 
   useEffect(() => {
-    loadData()
+    if (baslangicTarih && bitisTarih) {
+      loadData()
+    }
     
     // Her 30 saniyede bir otomatik yenile
     const interval = setInterval(() => {
-      loadData()
+      if (baslangicTarih && bitisTarih) {
+        loadData()
+      }
     }, 30000)
     
     return () => clearInterval(interval)
-  }, [])
+  }, [baslangicTarih, bitisTarih])
 
   const loadData = async () => {
+    if (!baslangicTarih || !bitisTarih) return
+    
     try {
       setLoading(true)
       
@@ -33,24 +59,12 @@ export default function YenilemelerPage() {
       
       if (musteriData) setMusteriler(musteriData)
 
-      // Bugünün tarihi
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      
-      // 5 gün geçen (bugünden 5 gün önce)
-      const gecmisTarih = new Date(today)
-      gecmisTarih.setDate(today.getDate() - 5)
-      
-      // 18 gün kalan (bugünden 18 gün sonra)
-      const gelecekTarih = new Date(today)
-      gelecekTarih.setDate(today.getDate() + 18)
-
-      // Poliçeleri yükle - sadece 18 gün kalan ve 5 gün geçen yenilemeler
+      // Poliçeleri yükle - seçilen tarih aralığındaki yenilemeler
       const { data: policeData, error } = await supabase
         .from('policeler')
         .select('*')
-        .gte('bitis_tarihi', gecmisTarih.toISOString().split('T')[0])
-        .lte('bitis_tarihi', gelecekTarih.toISOString().split('T')[0])
+        .gte('bitis_tarihi', baslangicTarih)
+        .lte('bitis_tarihi', bitisTarih)
         .order('bitis_tarihi', { ascending: true })
       
       if (error) throw error
@@ -83,9 +97,12 @@ export default function YenilemelerPage() {
     return 'bg-green-50 border-green-200 text-green-700'
   }
 
-  // İstatistikler
-  const gecmis = policeler.filter(p => getKalanGun(p.bitis_tarihi) < 0).length // 5 gün geçen
-  const yaklasan = policeler.filter(p => getKalanGun(p.bitis_tarihi) >= 0 && getKalanGun(p.bitis_tarihi) <= 18).length // 18 gün kalan
+  const handleDateChange = () => {
+    if (baslangicTarih && bitisTarih) {
+      loadData()
+      setShowDateDialog(false)
+    }
+  }
 
   return (
     <ProtectedRoute>
@@ -101,10 +118,25 @@ export default function YenilemelerPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-orange-900">Yenileme Takibi</h1>
-              <p className="text-gray-600">18 gün kalan ve 5 gün geçen poliçeleri takip edin</p>
+              <p className="text-gray-600">
+                {baslangicTarih && bitisTarih ? (
+                  <>
+                    {new Date(baslangicTarih).toLocaleDateString('tr-TR')} - {new Date(bitisTarih).toLocaleDateString('tr-TR')} tarihleri arasındaki poliçeler
+                  </>
+                ) : (
+                  'Tarih aralığını seçin'
+                )}
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <button 
+              onClick={() => setShowDateDialog(true)}
+              className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg"
+            >
+              <Calendar className="w-5 h-5" />
+              <span className="font-semibold">Tarih Değiştir</span>
+            </button>
             <button 
               onClick={loadData}
               className="flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-lg"
@@ -112,29 +144,6 @@ export default function YenilemelerPage() {
               <RefreshCw className="w-5 h-5" />
               <span className="font-semibold">Yenile</span>
             </button>
-          </div>
-        </div>
-
-        {/* İstatistikler */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 font-semibold mb-1">GEÇMİŞ (5 Gün Geçen)</p>
-                <p className="text-4xl font-black text-red-700">{gecmis}</p>
-              </div>
-              <div className="text-5xl">🔴</div>
-            </div>
-          </div>
-
-          <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-orange-600 font-semibold mb-1">YAKLAŞAN (18 Gün Kalan)</p>
-                <p className="text-4xl font-black text-orange-700">{yaklasan}</p>
-              </div>
-              <div className="text-5xl">🟠</div>
-            </div>
           </div>
         </div>
 
@@ -206,6 +215,74 @@ export default function YenilemelerPage() {
           )}
         </div>
       </main>
+
+      {/* Tarih Seçim Dialogu */}
+      {showDateDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Tarih Aralığı Seç</h2>
+              <button
+                onClick={() => setShowDateDialog(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Başlangıç Tarihi
+                </label>
+                <input
+                  type="date"
+                  value={baslangicTarih}
+                  onChange={(e) => setBaslangicTarih(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Bitiş Tarihi
+                </label>
+                <input
+                  type="date"
+                  value={bitisTarih}
+                  onChange={(e) => setBitisTarih(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                />
+              </div>
+
+              <div className="pt-4 flex space-x-3">
+                <button
+                  onClick={() => {
+                    const today = new Date()
+                    today.setHours(0, 0, 0, 0)
+                    const gecmisTarih = new Date(today)
+                    gecmisTarih.setDate(today.getDate() - 5)
+                    const gelecekTarih = new Date(today)
+                    gelecekTarih.setDate(today.getDate() + 18)
+                    setBaslangicTarih(gecmisTarih.toISOString().split('T')[0])
+                    setBitisTarih(gelecekTarih.toISOString().split('T')[0])
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+                >
+                  Varsayılan (18 gün kalan, 5 gün geçen)
+                </button>
+                <button
+                  onClick={handleDateChange}
+                  disabled={!baslangicTarih || !bitisTarih}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Uygula
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </ProtectedRoute>
   )
