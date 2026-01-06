@@ -276,29 +276,37 @@ export default function PolicePage() {
   }
 
   const sigortaSirketleri = [
+    'Aksigorta',
+    'Allianz Sigorta',
     'Anadolu Sigorta',
-    'Allianz',
     'AXA Sigorta',
+    'Corpus Sigorta',
     'HDI Sigorta',
     'Mapfre Sigorta',
-    'Türk Nippon',
-    'Aksigorta',
-    'Groupama',
-    'Ziraat Sigorta',
-    'Halk Sigorta'
+    'Neova Sigorta',
+    'Quick Sigorta',
+    'Ray Sigorta',
+    'Türk Nippon Sigorta',
+    'Türkiye Sigorta',
+    'Unico Sigorta'
   ]
 
   const sigortaTurleri = [
     'Kasko',
     'Trafik',
+    'YeşilKart',
+    'İMM',
     'Konut',
-    'Dask',
-    'Sağlık',
     'İşyeri',
-    'Nakliyat',
-    'Makine Kırılması',
-    'İşveren Mali Sorumluluk',
-    'Mesleki Sorumluluk'
+    'Dask',
+    'TSS',
+    'ÖSS',
+    'Hayat',
+    'YTS',
+    'FFL',
+    'CMR',
+    'Mesleki Sorumluluk',
+    'Nakliyat'
   ]
 
   return (
