@@ -39,13 +39,19 @@ async function getKomisyonOrani(sigortaTuru: string): Promise<number> {
   const varsayilanOranlar: { [key: string]: number } = {
     "Kasko": 0.15,
     "Trafik": 0.10,
+    "YeşilKart": 0.10,
+    "İMM": 0.15,
     "Konut": 0.15,
     "İşyeri": 0.15,
-    "Sağlık": 0.18,
-    "Hayat": 0.22,
     "Dask": 0.10,
-    "Seyahat": 0.17,
-    "Ferdi Kaza": 0.16,
+    "TSS": 0.15,
+    "ÖSS": 0.15,
+    "Hayat": 0.22,
+    "YTS": 0.15,
+    "FFL": 0.15,
+    "CMR": 0.15,
+    "Mesleki Sorumluluk": 0.15,
+    "Nakliyat": 0.15,
   }
   return varsayilanOranlar[sigortaTuru] || 0.15
 }
