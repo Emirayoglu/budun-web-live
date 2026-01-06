@@ -6,21 +6,53 @@ import { useState, useEffect } from 'react'
 import { FileText, Plus, Loader2, Save, X } from 'lucide-react'
 import { supabase, type Police, type Musteri, type Satisci } from '@/lib/supabase'
 
-// Komisyon oranı hesaplama fonksiyonu
-function getKomisyonOrani(sigortaTuru: string): number {
-  const komisyonOranlari: { [key: string]: number } = {
-    "Kasko": 0.15,          // %15
-    "Trafik": 0.10,         // %10
-    "Konut": 0.15,          // %15
-    "İşyeri": 0.15,         // %15
-    "Sağlık": 0.18,         // %18
-    "Hayat": 0.22,          // %22
-    "Dask": 0.10,           // %10
-    "Seyahat": 0.17,        // %17
-    "Ferdi Kaza": 0.16,     // %16
+// Komisyon oranı cache (performans için)
+let komisyonOranlariCache: { [key: string]: number } | null = null
+
+// Komisyon oranı hesaplama fonksiyonu (veritabanından okur)
+async function getKomisyonOrani(sigortaTuru: string): Promise<number> {
+  // Cache yoksa yükle
+  if (!komisyonOranlariCache) {
+    try {
+      const { data, error } = await supabase
+        .from('komisyon_oranlari')
+        .select('*')
+      
+      if (!error && data) {
+        komisyonOranlariCache = {}
+        data.forEach((item: any) => {
+          // Veritabanındaki yüzde değerini ondalığa çevir (örn: 15.00 -> 0.15)
+          komisyonOranlariCache![item.sigorta_turu] = (item.komisyon_orani || 15.00) / 100.0
+        })
+      }
+    } catch (err) {
+      console.error('Komisyon oranları yüklenirken hata:', err)
+    }
   }
-  // Eğer tür bulunamazsa varsayılan %15 kullan
-  return komisyonOranlari[sigortaTuru] || 0.15
+  
+  // Cache'den oku
+  if (komisyonOranlariCache && komisyonOranlariCache[sigortaTuru] !== undefined) {
+    return komisyonOranlariCache[sigortaTuru]
+  }
+  
+  // Varsayılan değerler (fallback)
+  const varsayilanOranlar: { [key: string]: number } = {
+    "Kasko": 0.15,
+    "Trafik": 0.10,
+    "Konut": 0.15,
+    "İşyeri": 0.15,
+    "Sağlık": 0.18,
+    "Hayat": 0.22,
+    "Dask": 0.10,
+    "Seyahat": 0.17,
+    "Ferdi Kaza": 0.16,
+  }
+  return varsayilanOranlar[sigortaTuru] || 0.15
+}
+
+// Cache'i temizle (yenileme için)
+function clearKomisyonOranlariCache() {
+  komisyonOranlariCache = null
 }
 
 export default function PolicePage() {
@@ -116,14 +148,17 @@ export default function PolicePage() {
 
   // Komisyon otomatik hesapla (sigorta türüne göre)
   useEffect(() => {
-    if (formData.prim_tutari && formData.sigorta_turu && formData.sigorta_turu !== '' && formData.sigorta_turu !== 'Sigorta Türü Seçin *') {
-      const prim = parseFloat(formData.prim_tutari.replace(/\./g, '').replace(',', '.')) || 0
-      const komisyonOrani = getKomisyonOrani(formData.sigorta_turu)
-      const komisyon = prim * komisyonOrani
-      setFormData(prev => ({ ...prev, komisyon_tutari: komisyon.toFixed(2) }))
-    } else {
-      setFormData(prev => ({ ...prev, komisyon_tutari: '' }))
+    const hesaplaKomisyon = async () => {
+      if (formData.prim_tutari && formData.sigorta_turu && formData.sigorta_turu !== '' && formData.sigorta_turu !== 'Sigorta Türü Seçin *') {
+        const prim = parseFloat(formData.prim_tutari.replace(/\./g, '').replace(',', '.')) || 0
+        const komisyonOrani = await getKomisyonOrani(formData.sigorta_turu)
+        const komisyon = prim * komisyonOrani
+        setFormData(prev => ({ ...prev, komisyon_tutari: komisyon.toFixed(2) }))
+      } else {
+        setFormData(prev => ({ ...prev, komisyon_tutari: '' }))
+      }
     }
+    hesaplaKomisyon()
   }, [formData.prim_tutari, formData.sigorta_turu])
 
   // Bitiş tarihini otomatik ayarla
