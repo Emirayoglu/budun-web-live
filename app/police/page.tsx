@@ -281,6 +281,7 @@ export default function PolicePage() {
     }
   }
 
+  // Sigorta şirketleri listesi
   const sigortaSirketleri = [
     'Aksigorta',
     'Allianz Sigorta',
@@ -297,6 +298,7 @@ export default function PolicePage() {
     'Unico Sigorta'
   ]
 
+  // Sigorta türleri listesi
   const sigortaTurleri = [
     'Kasko',
     'Trafik',
